@@ -15,17 +15,22 @@ export function hashColor(name?: string): string {
     if (!name || typeof name !== "string") name = "Unknown";
     name = toID(name); // Normalize username (lowercase, no spaces)
 
+    // Showdown's official hashing algorithm
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
-        hash = (hash * 1009 + name.charCodeAt(i)) % 16777216; // ✅ Exact Showdown hashing
+        hash = (hash * 0x1003F + name.charCodeAt(i)) >>> 0;
     }
 
-    // Convert hash into hex color (matches Pokémon Showdown's algorithm)
-    return `#${("00000" + (hash.toString(16))).slice(-6)}`;
+    // Convert to HSL color (matches Showdown's exact formula)
+    let H = hash % 360;
+    let S = 50;
+    let L = 45;
+
+    return `hsl(${H}, ${S}%, ${L}%)`; // Exact Showdown color output
 }
 
 export function nameColor(name?: string, userid?: string): string {
-    const finalName = name ?? userid ?? "Unknown"; // ✅ Use name or fallback to ID
+    const finalName = name ?? userid ?? "Unknown";
     const color = hashColor(finalName); // ✅ Uses the new, correct Showdown color generator
     return `<strong style="color:${color};">${finalName}</strong>`;
 }
