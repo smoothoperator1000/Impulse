@@ -11,26 +11,6 @@ const LOG_FILE = './logs/transactions.log';
 
 global.currencyName = 'Pokèdollars';
 
-export function hashColor(name?: string): string {
-    if (!name || typeof name !== "string") name = "Unknown";
-    name = toID(name); // Normalize username (lowercase, no spaces)
-
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-        hash = (hash * 0x10007 + name.charCodeAt(i)) >>> 0; // Correct hashing formula
-    }
-
-    // Pokémon Showdown's exact hue calculation
-    const H = hash % 360;
-    return `hsl(${H}, 100%, 35%)`; // Matches Showdown’s username colors
-}
-
-export function nameColor(name?: string, userid?: string): string {
-    const finalName = name ?? userid ?? "Unknown"; // Use name or fallback to ID
-    const color = hashColor(finalName); // uses the real Showdown hashing system
-    return `<strong style="color:${color};">${finalName}</strong>`;
-}
-
 export const commands: Chat.ChatCommands = {
     async balance(target, room, user) {
         this.requireRoom();
@@ -114,44 +94,6 @@ export const commands: Chat.ChatCommands = {
             this.checkCan('bypassall'); // Requires admin privileges
             await resetAllBalances();
             this.sendReply(`All users' balances have been reset to 0.`);
-        },
-		 
-        async leaderboard(target, room, user) {
-            this.requireRoom();
-
-            let page = Number(target) || 1;
-            if (page < 1) page = 1;
-
-            let usersData;
-            try {
-                usersData = await getAllBalances();
-            } catch (error) {
-                console.error("ECONNRESET Error in leaderboard:", error);
-                return this.errorReply("Error retrieving leaderboard data. Please try again.");
-            }
-
-            const totalUsers = usersData.length;
-            const perPage = 20;
-            const totalPages = Math.max(1, Math.ceil(totalUsers / perPage));
-            if (page > totalPages) page = totalPages;
-
-            const start = (page - 1) * perPage;
-            const displayedUsers = usersData.slice(start, start + perPage);
-
-            if (!displayedUsers.length) return this.errorReply("No users to display on this page.");
-
-            let tableRows = displayedUsers.map((user, index) => `<tr style="background: #2b2b3d;"><td style="padding: 8px; font-weight: bold; color: #FFD700;">${start + index + 1}</td><td style="padding: 8px;">${nameColor(user.name, user.userid)}</td><td style="padding: 8px; color: #00c8ff;">${user.money.toLocaleString()} ${currencyName}</td></tr>`).join("");
-
-			  let leaderboardHtml = `<div style="background:#1e1e2e;padding:15px;border-radius:10px;color:#ffffff;font-family:Arial,sans-serif;text-align:center;max-width:100%;overflow:auto;"><div style="font-size:20px;font-weight:bold;color:#9bc8ff;margin-bottom:10px;"><center>❄️Economy Leaderboard ❄️</center><br></div><table style="width:100%;border-collapse:collapse;max-width:400px;margin:auto;border:3px solid #444;border-radius:8px;box-shadow:0px 4px 10px rgba(0,0,0,0.3);"><thead><tr style="background:#3c3c50;color:#00c8ff;font-size:14px;"><th style="padding:8px;border-right:2px solid #444;">Rank</th><th style="padding:8px;border-right:2px solid #444;">User</th><th style="padding:8px;">Balance</th></tr></thead><tbody>${tableRows}</tbody></table><div style="margin-top:10px;font-size:14px;color:#b0c7e4;">Page ${page} of ${totalPages}</div></div>`;
-            const key = `leaderboard-${user.id}`;
-            const userNameWithColor = nameColor(user.name, user.userid);
-			  
-            if (room) {
-                this.send(`|raw|<strong>${userNameWithColor}</strong>: /eco leaderboard<br>${leaderboardHtml}`);
-            } else {
-                user.send(`|uhtml|${key}|<strong>${userNameWithColor}</strong>: /eco leaderboard<br>${leaderboardHtml}`);
-                setTimeout(() => user.send(`|uhtmlchange|${key}|<strong>${userNameWithColor}</strong>: /eco leaderboard<br>${leaderboardHtml}`), 100);
-            }
         },
 	 },
 
