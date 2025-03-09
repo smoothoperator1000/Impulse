@@ -77,18 +77,22 @@ async function resetAllBalances(): Promise<void> {
     logTransaction(`RESET: All user balances have been reset.`);
 }
 
-async function getAllBalances(): Promise<{ userid: string, money: number }[]> {
-    const allData = await Economy.keys(); // Get all stored user IDs
+async function getAllBalances(): Promise<{ userid: string, name?: string, money: number }[]> {
+    const allData = await Economy.keys();
     const balances = [];
 
     for (const userid of allData) {
         const data = await Economy.getItem(userid);
         if (data?.money) {
-            balances.push({ userid, money: data.money });
+            balances.push({ 
+                userid: toID(userid), // ✅ Ensures ID is lowercase & valid
+                name: data.name, 
+                money: data.money 
+            });
         }
     }
 
-    return balances.sort((a, b) => b.money - a.money); // Sort by highest balance
+    return balances.sort((a, b) => b.money - a.money);
 }
 
 export { getBalance, setBalance, addMoney, takeMoney, transferMoney, hasBalance, resetBalance, resetAllBalances, getAllBalances};
