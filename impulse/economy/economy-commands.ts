@@ -27,9 +27,6 @@ export function currencyName(): string {
     return "Pokèdollars"; // Change this to "PokéDollars", "Credits", etc.
 }
 
-export { nameColor };
-export { currencyName };
-
 export const commands: Chat.ChatCommands = {
     async balance(target, room, user) {
         this.requireRoom();
