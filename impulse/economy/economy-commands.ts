@@ -96,41 +96,33 @@ export const commands: Chat.ChatCommands = {
             await resetAllBalances();
             this.sendReply(`All users' balances have been reset to 0.`);
         },
-		 
 		 async leaderboard(target, room, user) {
-			 this.requireRoom();
-			 this.runBroadcast();
-			 let page = Number(target) || 1;
-			 if (page < 1) page = 1;
-			 const usersData = await getAllBalances(); // Get sorted list of users
-			 const totalUsers = usersData.length;
-			 const perPage = 20;
-			 const totalPages = Math.max(1, Math.ceil(totalUsers / perPage));
-			 if (page > totalPages) page = totalPages;
-			 const start = (page - 1) * perPage;
-			 const displayedUsers = usersData.slice(start, start + perPage);
-			 if (!displayedUsers.length) return this.errorReply("No users to display on this page.");
-			 let tableRows = displayedUsers.map((user, index) => `<tr><td>${start + index + 1}</td><td><b>${user.userid}</b></td><td>${user.money.toLocaleString()} coins</td></tr>`).join("");
-			 
-			 let leaderboardHtml = `<style>` +
-        `.leaderboard-container { background: #1e1e2e; padding: 12px; border-radius: 10px; color: #ffffff; font-family: Arial, sans-serif; text-align: center; width: 100%; max-width: 600px; margin: auto; }` +
-        `.leaderboard-title { font-size: 20px; font-weight: bold; color: #9bc8ff; margin-bottom: 10px; }` +
-        `.leaderboard-table { width: 100%; border-collapse: collapse; background: #2b2b3d; border-radius: 8px; overflow: hidden; }` +
-        `.leaderboard-table th { background: #3c3c50; color: #00c8ff; padding: 10px; }` +
-        `.leaderboard-table td { padding: 10px; text-align: center; border-bottom: 1px solid #444; transition: background 0.3s; }` +
-        `.leaderboard-table tr:hover { background: #4c4c6f; }` +
-        `.leaderboard-table td:first-child { font-weight: bold; color: #FFD700; }` +
-        `.pagination { margin-top: 8px; font-size: 14px; color: #b0c7e4; }</style>` +
-				 `<div class="leaderboard-container">` +
-	  `<div class="leaderboard-title">❄️ Ice Pokémon Economy Leaderboard ❄️</div>` +
-	`<table class="leaderboard-table">` +
- `<thead><tr><th>Rank</th><th>User</th><th>Balance</th></tr></thead>` +
- `<tbody>${tableRows}</tbody></table>` +
- `<div class="pagination">Page ${page} of ${totalPages}</div></div>`;
-			 const key = `leaderboard-${user.id}`;
-			 // Send leaderboard initially with `|uhtml|`, then update with `|uhtmlchange|`
-			 user.send(`|uhtml|${key}|${leaderboardHtml}`);
-			 setTimeout(() => user.send(`|uhtmlchange|${key}|${leaderboardHtml}`), 100);
+    this.requireRoom();
+    this.runBroadcast();
+
+    let page = Number(target) || 1;
+    if (page < 1) page = 1;
+
+    const usersData = await getAllBalances(); // Get sorted list of users
+    const totalUsers = usersData.length;
+    const perPage = 20;
+    const totalPages = Math.max(1, Math.ceil(totalUsers / perPage));
+    if (page > totalPages) page = totalPages;
+
+    const start = (page - 1) * perPage;
+    const displayedUsers = usersData.slice(start, start + perPage);
+
+    if (!displayedUsers.length) return this.errorReply("No users to display on this page.");
+
+    let tableRows = displayedUsers.map((user, index) => `<tr style="background: #2b2b3d; transition: background 0.3s;"><td style="padding: 10px; font-weight: bold; color: #FFD700;">${start + index + 1}</td><td style="padding: 10px; font-weight: bold;">${user.userid}</td><td style="padding: 10px; color: #00c8ff;">${user.money.toLocaleString()} coins</td></tr>`).join("");
+
+    let leaderboardHtml = `<div style="background: #1e1e2e; padding: 12px; border-radius: 10px; color: #ffffff; font-family: Arial, sans-serif; text-align: center; width: 100%; max-width: 600px; margin: auto;"><div style="font-size: 20px; font-weight: bold; color: #9bc8ff; margin-bottom: 10px;">❄️ Ice Pokémon Economy Leaderboard ❄️</div><table style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden;"><thead><tr style="background: #3c3c50; color: #00c8ff;"><th style="padding: 10px;">Rank</th><th style="padding: 10px;">User</th><th style="padding: 10px;">Balance</th></tr></thead><tbody>${tableRows}</tbody></table><div style="margin-top: 8px; font-size: 14px; color: #b0c7e4;">Page ${page} of ${totalPages}</div></div>`;
+
+    const key = `leaderboard-${user.id}`;
+
+    // Send leaderboard initially with `|uhtml|`, then update with `|uhtmlchange|`
+    user.send(`|uhtml|${key}|${leaderboardHtml}`);
+    setTimeout(() => user.send(`|uhtmlchange|${key}|${leaderboardHtml}`), 100);
 		 },
 },
 
