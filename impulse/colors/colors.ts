@@ -55,14 +55,19 @@ export function hashColor(name: string): string {
 
 // Assign a name color
 export function nameColor(name: string, bold: boolean = false, userGroup: boolean = false): string {
-  const userGroupSymbol = Users.usergroups[toID(name)]
-    ? `<b><font color=#948A88>${Users.usergroups[toID(name)].charAt(0)}</font></b>`
+  const id = toID(name);
+
+  // Ensure Users.usergroups is valid before accessing it
+  const userGroupSymbol = (global.Users?.usergroups?.[id])
+    ? `<b><font color=#948A88>${global.Users.usergroups[id].charAt(0)}</font></b>`
     : '';
+
   return (userGroup ? userGroupSymbol : '') +
     (bold ? '<b>' : '') +
     `<font color="${hashColor(name)}">${Chat.escapeHTML(name)}</font>` +
     (bold ? '</b>' : '');
 }
+
 
 // Generate CSS for a username color
 export function generateCSS(name: string, color: string): string {
