@@ -110,11 +110,9 @@ export const commands: Chat.ChatCommands = {
         const start = (page - 1) * perPage;
         const displayedUsers = usersData.slice(start, start + perPage);
         if (!displayedUsers.length) return this.errorReply("No users to display on this page.");
-        let tableRows = displayedUsers.map((user, index) => `
-        <tr><td>${start + index + 1}</td>` +
-        <td><b>${user.userid}</b></td>` +
-        <td>${user.money.toLocaleString()} coins</td>` +
-        </tr>`).join("");` +
+        let tableRows = displayedUsers.map((user, index) => `<tr><td>${start + index + 1}</td>` +
+        `<td><b>${user.userid}</b></td>` +
+        `<td>${user.money.toLocaleString()} coins</td></tr>`).join("");
         let leaderboardHtml = `<div style="background: #1e1e2e; padding: 10px; border-radius: 8px; color: #ffffff;">` +
         `<h2 style="text-align: center; color: #9bc8ff;">❄️ Economy Leaderboard ❄️</h2>` +
         `<table style="width: 100%; border-collapse: collapse;">` +
