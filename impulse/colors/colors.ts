@@ -20,6 +20,39 @@ if (colorFile) {
   customColors = JSON.parse(colorFile);
 }
 
+export function updateColor(): void {
+  FS('config/customcolors.json').writeUpdate(() => (
+    JSON.stringify(customColors)
+  ));
+
+  let newCss = '/* COLORS START */\n';
+
+  for (let name in customColors) {
+    newCss += generateCSS(name, customColors[name]);
+  }
+  newCss += '/* COLORS END */\n';
+
+  let file = FS('config/custom.css').readIfExistsSync().split('\n');
+  if (~file.indexOf('/* COLORS START */')) {
+    file.splice(
+      file.indexOf('/* COLORS START */'),
+      file.indexOf('/* COLORS END */') - file.indexOf('/* COLORS START */') + 1
+    );
+  }
+  FS('config/custom.css').writeUpdate(() => (
+    file.join('\n') + newCss
+  ));
+  reloadCSS();
+}
+
+export function generateCSS(name: string, color: string): string {
+  name = toID(name);
+  let css = `[class$="chatmessage-${name}"] strong, [class$="chatmessage-${name} mine"] strong, [class$="chatmessage-${name} highlighted"] strong, [id$="-userlist-user-${name}"] strong em, [id$="-userlist-user-${name}"] strong, [id$="-userlist-user-${name}"] span`;
+  css += `{\ncolor: ${color} !important;\n}\n`;
+  return css;
+}
+
+
 function MD5(e: string): string {
   function t(e: number, t: number): number {
     let n, r, i, s, o;
@@ -238,4 +271,27 @@ export function hashColor(name: string): string {
 
   let rgb = hslToRgb(H, S, L);
   return `#${rgbToHex(rgb.r, rgb.g, rgb.b)}`;
+}
+
+export function nameColor(name: string, bold?: boolean, userGroup?: boolean): string {
+  let userGroupSymbol = Users.usergroups[toID(name)]
+    ? `<b><font color=#948A88>${Users.usergroups[toID(name)].substr(0, 1)}</font></b>`
+    : "";
+
+  return (
+    (userGroup ? userGroupSymbol : "") +
+    (bold ? "<b>" : "") +
+    `<font color="${hashColor(name)}">` +
+    (Users(name) && Users(name).connected && Users.getExact(name)
+      ? Chat.escapeHTML(Users.getExact(name).name)
+      : Chat.escapeHTML(name)) +
+    "</font>" +
+    (bold ? "</b>" : "")
+  );
+}
+
+export function reloadCSS(): void {
+  const cssPath = 'impulse'; // This should be the server ID if Config.serverid doesn't exist. Ex: 'serverid'
+  let req = https.get('https://play.pokemonshowdown.com/customcss.php?server=' + (Config.serverid || cssPath), () => {});
+  req.end();
 }
