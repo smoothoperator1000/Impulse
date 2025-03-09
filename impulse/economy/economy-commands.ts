@@ -112,9 +112,7 @@ export const commands: Chat.ChatCommands = {
             await resetAllBalances();
             this.sendReply(`All users' balances have been reset to 0.`);
         },
-
-		 import { nameColor, getCurrency } from './utils'; // Import global functions
-
+		 
         async leaderboard(target, room, user) {
             this.requireRoom();
 
@@ -139,7 +137,7 @@ export const commands: Chat.ChatCommands = {
 
             if (!displayedUsers.length) return this.errorReply("No users to display on this page.");
 
-            let tableRows = displayedUsers.map((user, index) => `<tr style="background: #2b2b3d;"><td style="padding: 8px; font-weight: bold; color: #FFD700;">${start + index + 1}</td><td style="padding: 8px;">${nameColor(user.name, user.userid)}</td><td style="padding: 8px; color: #00c8ff;">${user.money.toLocaleString()} ${getCurrency()}</td></tr>`).join("");
+            let tableRows = displayedUsers.map((user, index) => `<tr style="background: #2b2b3d;"><td style="padding: 8px; font-weight: bold; color: #FFD700;">${start + index + 1}</td><td style="padding: 8px;">${nameColor(user.name, user.userid)}</td><td style="padding: 8px; color: #00c8ff;">${user.money.toLocaleString()} ${currencyName}</td></tr>`).join("");
 
             let leaderboardHtml = `<div style="background: #1e1e2e; padding: 10px; border-radius: 8px; color: #ffffff;"><div style="font-size: 18px; font-weight: bold; color: #9bc8ff;">❄️ Ice Pokémon Economy Leaderboard ❄️</div><table style="width: 100%;"><thead><tr style="background: #3c3c50; color: #00c8ff;"><th>Rank</th><th>User</th><th>Balance</th></tr></thead><tbody>${tableRows}</tbody></table><div>Page ${page} of ${totalPages}</div></div>`;
 
