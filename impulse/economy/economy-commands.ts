@@ -4,7 +4,7 @@
 * have suggestions to improve it further,
 */
 
-import { getBalance, addMoney, takeMoney, hasBalance, resetBalance, transferMoney, resetAllBalances, getAllBalances } from '../../impulse/economy/economy';
+import { getBalance, addMoney, takeMoney, hasBalance, resetBalance, transferMoney, resetAllBalances, getAllBalances} from '../../impulse/economy/economy';
 import { FS } from '../../lib/fs';
 
 const LOG_FILE = './logs/transactions.log';
