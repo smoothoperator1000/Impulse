@@ -118,7 +118,7 @@ export const commands: Chat.ChatCommands = {
             this.sendReply(`All users' balances have been reset to 0.`);
         },
 		 
-		 async function leaderboard(target, room, user) {
+		 async leaderboard(target, room, user) {
 			 this.requireRoom(); // Ensure command is used in a room
 			 let page = Number(target) || 1;
 			 if (page < 1) page = 1;
