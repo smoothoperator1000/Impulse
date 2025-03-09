@@ -9,24 +9,25 @@ import { FS } from '../../lib/fs';
 
 const LOG_FILE = './logs/transactions.log';
 
+global.currencyName = 'Pokèdollars';
+
 export function hashColor(name?: string): string {
     if (!name || typeof name !== "string") name = "Unknown";
-    name = toID(name); //  Normalize username
+    name = toID(name); // Normalize username
 
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
-        hash = (hash * 63 + name.charCodeAt(i)) % 360;
+        hash = (hash * 19 + name.charCodeAt(i)) % 360; // Matches Showdown color algorithm
     }
-    return `hsl(${hash}, 50%, 45%)`;
+
+    return `hsl(${hash}, 45%, 45%)`; //  Uses correct Showdown HSL values
 }
 
 export function nameColor(name?: string, userid?: string): string {
-    const finalName = name ?? userid ?? "Unknown"; // ✅ Use `name`, fallback to `userid`, then "Unknown"
+    const finalName = name ?? userid ?? "Unknown";
     const color = hashColor(finalName);
     return `<strong style="color: ${color};">${finalName}</strong>`;
 }
-
-global.currencyName = 'Pokèdollars';
 
 export const commands: Chat.ChatCommands = {
     async balance(target, room, user) {
