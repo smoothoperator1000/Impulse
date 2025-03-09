@@ -4,7 +4,7 @@
  * Credits: panpawn, jd, HoeenHero
  */
 
-import { updateColor, nameColor, hashColor } from '../.../impulse/colors/colors';
+import { updateColor, nameColor, hashColor } from '../impulse/colors/colors';
 
 export const commands: ChatCommands = {
   customcolor: {
