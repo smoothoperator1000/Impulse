@@ -17,16 +17,17 @@ export function hashColor(name?: string): string {
 
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
-        hash = (hash * 19 + name.charCodeAt(i)) % 360; // ✅ Matches Showdown's color hashing
+        hash = (hash * 1009 + name.charCodeAt(i)) % 16777216; // ✅ Exact Showdown hashing
     }
 
-    return `hsl(${hash}, 50%, 45%)`; // Exact Showdown color styling
+    // Convert hash into hex color (matches Pokémon Showdown's algorithm)
+    return `#${("00000" + (hash.toString(16))).slice(-6)}`;
 }
 
 export function nameColor(name?: string, userid?: string): string {
-    const finalName = name ?? userid ?? "Unknown"; // Use name or fallback to ID
-    const color = hashColor(finalName);
-    return `<strong style="color:${color};">${finalName}</strong>`; // ✅ Now matches Showdown colors
+    const finalName = name ?? userid ?? "Unknown"; // ✅ Use name or fallback to ID
+    const color = hashColor(finalName); // ✅ Uses the new, correct Showdown color generator
+    return `<strong style="color:${color};">${finalName}</strong>`;
 }
 
 export const commands: Chat.ChatCommands = {
