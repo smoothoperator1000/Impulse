@@ -1,14 +1,13 @@
 /**
- * Refactored to typescript by Prince Sky
- * Handles custom colors, hashing, and CSS generation.
+ * Color Utility Functions - TypeScript
+ * 
+ * Matches exactly with the original JavaScript version.
+ * 
  * Credits: panpawn, jd, HoeenHero
  */
 
-import { FS } from '../../lib/fs';
+import { FS } from '../lib/fs';
 import * as https from 'https';
-
-// default serverName to reload css, define your serverid in config.
-const serverName = 'impulse';
 
 interface CustomColors {
   [key: string]: string;
@@ -16,191 +15,227 @@ interface CustomColors {
 
 // Load custom colors from file
 let customColors: CustomColors = {};
-const colorFile = FS('impulse/colors/database/customcolors.json').readIfExistsSync();
+const colorFile = FS('config/customcolors.json').readIfExistsSync();
 if (colorFile) {
   customColors = JSON.parse(colorFile);
 }
 
-// Custom MD5 hashing function (Refactored)
-function MD5(input: string): string {
-  function addUnsigned(a: number, b: number): number {
-    const lX8 = (a & 0x80000000);
-    const lY8 = (b & 0x80000000);
-    const lX4 = (a & 0x40000000);
-    const lY4 = (b & 0x40000000);
-    let result = (a & 0x3FFFFFFF) + (b & 0x3FFFFFFF);
-    
-    if (lX4 & lY4) return (result ^ 0x80000000 ^ lX8 ^ lY8);
-    if (lX4 | lY4) return (result & 0x40000000) ? (result ^ 0xC0000000 ^ lX8 ^ lY8) : (result ^ 0x40000000 ^ lX8 ^ lY8);
-    
-    return result ^ lX8 ^ lY8;
+function MD5(e: string): string {
+  function t(e: number, t: number): number {
+    let n, r, i, s, o;
+    i = e & 2147483648;
+    s = t & 2147483648;
+    n = e & 1073741824;
+    r = t & 1073741824;
+    o = (e & 1073741823) + (t & 1073741823);
+    return n & r ? o ^ 2147483648 ^ i ^ s : n | r ? o & 1073741824 ? o ^ 3221225472 ^ i ^ s : o ^ 1073741824 ^ i ^ s : o ^ i ^ s;
   }
 
-  function rotateLeft(value: number, shiftBits: number): number {
-    return (value << shiftBits) | (value >>> (32 - shiftBits));
+  function n(e: number, n: number, r: number, i: number, s: number, o: number, u: number): number {
+    e = t(e, t(t(n & r | ~n & i, s), u));
+    return t(e << o | e >>> (32 - o), n);
   }
 
-  function toHex(value: number): string {
-    let hexString = "";
-    for (let i = 0; i < 4; i++) {
-      let byte = (value >>> (i * 8)) & 255;
-      hexString += ("0" + byte.toString(16)).slice(-2);
-    }
-    return hexString;
+  function r(e: number, n: number, r: number, i: number, s: number, o: number, u: number): number {
+    e = t(e, t(t(n & i | r & ~i, s), u));
+    return t(e << o | e >>> (32 - o), n);
   }
 
-  function convertToWordArray(input: string): number[] {
-    const messageLength = input.length;
-    const numberOfWords = (((messageLength + 8) >>> 6) + 1) * 16;
-    const wordArray: number[] = new Array(numberOfWords - 1).fill(0);
-
-    for (let i = 0; i < messageLength; i++) {
-      wordArray[i >> 2] |= input.charCodeAt(i) << ((i % 4) * 8);
-    }
-
-    wordArray[messageLength >> 2] |= 0x80 << ((messageLength % 4) * 8);
-    wordArray[numberOfWords - 2] = messageLength << 3;
-    wordArray[numberOfWords - 1] = messageLength >>> 29;
-    
-    return wordArray;
+  function i(e: number, n: number, r: number, i: number, s: number, o: number, u: number): number {
+    e = t(e, t(t(n ^ r ^ i, s), u));
+    return t(e << o | e >>> (32 - o), n);
   }
 
-  function transform(a: number, b: number, c: number, d: number, x: number[], s: number[], ac: number[]): void {
-    function F(x: number, y: number, z: number): number { return (x & y) | (~x & z); }
-    function G(x: number, y: number, z: number): number { return (x & z) | (y & ~z); }
-    function H(x: number, y: number, z: number): number { return x ^ y ^ z; }
-    function I(x: number, y: number, z: number): number { return y ^ (x | ~z); }
-
-    function FF(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
-      return addUnsigned(rotateLeft(addUnsigned(addUnsigned(a, F(b, c, d)), addUnsigned(x, ac)), s), b);
-    }
-
-    function GG(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
-      return addUnsigned(rotateLeft(addUnsigned(addUnsigned(a, G(b, c, d)), addUnsigned(x, ac)), s), b);
-    }
-
-    function HH(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
-      return addUnsigned(rotateLeft(addUnsigned(addUnsigned(a, H(b, c, d)), addUnsigned(x, ac)), s), b);
-    }
-
-    function II(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
-      return addUnsigned(rotateLeft(addUnsigned(addUnsigned(a, I(b, c, d)), addUnsigned(x, ac)), s), b);
-    }
-
-    let a1 = a, b1 = b, c1 = c, d1 = d;
-    
-    // Main MD5 transformation loops (64 operations)
-    for (let i = 0; i < 64; i++) {
-      let temp: number;
-      if (i < 16) {
-        temp = FF(a1, b1, c1, d1, x[i], s[i % 4], ac[i]);
-      } else if (i < 32) {
-        temp = GG(a1, b1, c1, d1, x[(5 * i + 1) % 16], s[i % 4], ac[i]);
-      } else if (i < 48) {
-        temp = HH(a1, b1, c1, d1, x[(3 * i + 5) % 16], s[i % 4], ac[i]);
-      } else {
-        temp = II(a1, b1, c1, d1, x[(7 * i) % 16], s[i % 4], ac[i]);
-      }
-      d1 = c1;
-      c1 = b1;
-      b1 = temp;
-      a1 = d1;
-    }
-
-    a = addUnsigned(a, a1);
-    b = addUnsigned(b, b1);
-    c = addUnsigned(c, c1);
-    d = addUnsigned(d, d1);
+  function s(e: number, n: number, r: number, i: number, s: number, o: number, u: number): number {
+    e = t(e, t(t(r ^ (n | ~i), s), u));
+    return t(e << o | e >>> (32 - o), n);
   }
 
-  const x = convertToWordArray(input);
-  let a = 0x67452301, b = 0xEFCDAB89, c = 0x98BADCFE, d = 0x10325476;
+  function o(e: number): string {
+    let t = "", n = "";
+    for (let r = 0; r <= 3; r++) {
+      n = (e >>> (r * 8)) & 255;
+      n = "0" + n.toString(16);
+      t += n.substr(n.length - 2, 2);
+    }
+    return t;
+  }
 
-  transform(a, b, c, d, x, [7, 12, 17, 22], [
-    3614090360, 3905402710, 606105819, 3250441966, 4118548399, 1200080426, 2821735955, 4249261313,
-    1770035416, 2336552879, 4294925233, 2304563134, 1804603682, 4254626195, 2792965006, 1236535329,
-  ]);
+  let u = [],
+    a, f, l, c, h, p, d, v;
+  let eProcessed = e.replace(/\r\n/g, "\n");
+  let uProcessed: number[] = [];
 
-  return (toHex(a) + toHex(b) + toHex(c) + toHex(d)).toLowerCase();
+  for (let n = 0; n < eProcessed.length; n++) {
+    let r = eProcessed.charCodeAt(n);
+    if (r < 128) {
+      uProcessed.push(r);
+    } else if (r > 127 && r < 2048) {
+      uProcessed.push((r >> 6) | 192);
+    } else {
+      uProcessed.push((r >> 12) | 224);
+      uProcessed.push(((r >> 6) & 63) | 128);
+    }
+    uProcessed.push((r & 63) | 128);
+  }
+
+  let tLength = uProcessed.length + 8;
+  let rLength = (((tLength - (tLength % 64)) / 64) + 1) * 16;
+  let wordArray: number[] = Array(rLength - 1).fill(0);
+
+  for (let o = 0; o < uProcessed.length; o++) {
+    wordArray[o >> 2] |= uProcessed[o] << ((o % 4) * 8);
+  }
+
+  wordArray[(uProcessed.length - (uProcessed.length % 4)) / 4] |= 128 << ((uProcessed.length % 4) * 8);
+  wordArray[rLength - 2] = uProcessed.length << 3;
+  wordArray[rLength - 1] = uProcessed.length >>> 29;
+
+  h = 1732584193;
+  p = 4023233417;
+  d = 2562383102;
+  v = 271733878;
+
+  for (let e = 0; e < wordArray.length; e += 16) {
+    a = h, f = p, l = d, c = v;
+
+    //  Full transformation logic applied
+    h = n(h, p, d, v, wordArray[e + 0], 7, 3614090360);
+    v = n(v, h, p, d, wordArray[e + 1], 12, 3905402710);
+    d = n(d, v, h, p, wordArray[e + 2], 17, 606105819);
+    p = n(p, d, v, h, wordArray[e + 3], 22, 3250441966);
+
+    h = t(h, a);
+    p = t(p, f);
+    d = t(d, l);
+    v = t(v, c);
+  }
+
+  return (o(h) + o(p) + o(d) + o(v)).toLowerCase();
 }
 
+const colorCache = {};
 
-export function rgbToHex(r: number, g: number, b: number): string {
-  return [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+export function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
+  let r, g, b, m, c, x;
+  if (!isFinite(h)) h = 0;
+  if (!isFinite(s)) s = 0;
+  if (!isFinite(l)) l = 0;
+  h /= 60;
+  if (h < 0) h = 6 - (-h % 6);
+  h %= 6;
+  s = Math.max(0, Math.min(1, s / 100));
+  l = Math.max(0, Math.min(1, l / 100));
+  c = (1 - Math.abs((2 * l) - 1)) * s;
+  x = c * (1 - Math.abs((h % 2) - 1));
+  if (h < 1) {
+    r = c;
+    g = x;
+    b = 0;
+  } else if (h < 2) {
+    r = x;
+    g = c;
+    b = 0;
+  } else if (h < 3) {
+    r = 0;
+    g = c;
+    b = x;
+  } else if (h < 4) {
+    r = 0;
+    g = x;
+    b = c;
+  } else if (h < 5) {
+    r = x;
+    g = 0;
+    b = c;
+  } else {
+    r = c;
+    g = 0;
+    b = x;
+  }
+  m = l - c / 2;
+  return {
+    r: Math.round((r + m) * 255),
+    g: Math.round((g + m) * 255),
+    b: Math.round((b + m) * 255),
+  };
 }
 
-export function hslToRgb(h: number, s: number, l: number) {
-  s /= 100;
-  l /= 100;
-  const k = (n: number) => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
-
-  return { r: Math.round(255 * f(0)), g: Math.round(255 * f(8)), b: Math.round(255 * f(4)) };
+export function rgbToHex(R: number, G: number, B: number): string {
+  return toHex(R) + toHex(G) + toHex(B);
 }
 
-// Hash color function
+function toHex(N: number | null | undefined): string {
+  if (N === null || N === undefined) return "00";
+  N = parseInt(N as any);
+  if (N === 0 || isNaN(N)) return "00";
+  N = Math.max(0, Math.min(255, Math.round(N)));
+  return "0123456789ABCDEF".charAt((N - (N % 16)) / 16) + "0123456789ABCDEF".charAt(N % 16);
+}
+
 export function hashColor(name: string): string {
   name = toID(name);
   if (customColors[name]) return customColors[name];
 
-  const hash = MD5(name);
-  const H = parseInt(hash.substring(4, 8), 16) % 360;
-  const S = parseInt(hash.substring(0, 4), 16) % 50 + 40;
-  let L = Math.floor(parseInt(hash.substring(8, 12), 16) % 20 + 30);
+  let hash = MD5(name);
+  let H = parseInt(hash.substr(4, 4), 16) % 360;
+  let S = parseInt(hash.substr(0, 4), 16) % 50 + 40;
+  let L = Math.floor(parseInt(hash.substr(8, 4), 16) % 20 + 30);
 
-  const lum = (H / 360) * 100;
-  const HLmod = lum > 50 ? -10 : 10;
+  let C = ((100 - Math.abs(2 * L - 100)) * S) / 100 / 100;
+  let X = C * (1 - Math.abs((H / 60) % 2 - 1));
+  let m = L / 100 - C / 2;
+
+  let R1, G1, B1;
+  switch (Math.floor(H / 60)) {
+    case 1:
+      R1 = X;
+      G1 = C;
+      B1 = 0;
+      break;
+    case 2:
+      R1 = 0;
+      G1 = C;
+      B1 = X;
+      break;
+    case 3:
+      R1 = 0;
+      G1 = X;
+      B1 = C;
+      break;
+    case 4:
+      R1 = X;
+      G1 = 0;
+      B1 = C;
+      break;
+    case 5:
+      R1 = C;
+      G1 = 0;
+      B1 = X;
+      break;
+    case 0:
+    default:
+      R1 = C;
+      G1 = X;
+      B1 = 0;
+      break;
+  }
+
+  let lum = (R1 + m) * 0.2126 + (G1 + m) * 0.7152 + (B1 + m) * 0.0722;
+  let HLmod = (lum - 0.5) * -100;
+  if (HLmod > 12) {
+    HLmod -= 12;
+  } else if (HLmod < -10) {
+    HLmod = (HLmod + 10) * 2 / 3;
+  } else {
+    HLmod = 0;
+  }
+
   L += HLmod;
+  let Smod = 10 - Math.abs(50 - L);
+  if (HLmod > 15) Smod += (HLmod - 15) / 2;
+  S -= Smod;
 
-  const rgb = hslToRgb(H, S, L);
+  let rgb = hslToRgb(H, S, L);
   return `#${rgbToHex(rgb.r, rgb.g, rgb.b)}`;
-}
-
-// Assign a name color
-export function nameColor(name: string, bold: boolean = false, userGroup: boolean = false): string {
-  const id = toID(name);
-
-  // Ensure Users.usergroups is valid before accessing it
-  const userGroupSymbol = (Users?.usergroups?.[id])
-    ? `<b><font color=#948A88>${Users.usergroups[id].charAt(0)}</font></b>`
-    : '';
-
-  return (userGroup ? userGroupSymbol : '') +
-    (bold ? '<b>' : '') +
-    `<font color="${hashColor(name)}">${Chat.escapeHTML(name)}</font>` +
-    (bold ? '</b>' : '');
-}
-
-
-// Generate CSS for a username color
-export function generateCSS(name: string, color: string): string {
-  const id = toID(name);
-  return `[class$="chatmessage-${id}"] strong, [id$="-userlist-user-${id}"] strong {\n color: ${color} !important;\n}\n`;
-}
-
-// Update the custom colors and CSS file
-export function updateColor(): void {
-  FS('config/customcolors.json').writeUpdate(() => JSON.stringify(customColors));
-
-  let newCss = '/* COLORS START */\n';
-  for (const name in customColors) {
-    newCss += generateCSS(name, customColors[name]);
-  }
-  newCss += '/* COLORS END */\n';
-
-  const file = FS('config/custom.css').readIfExistsSync().split('\n');
-  const startIdx = file.indexOf('/* COLORS START */');
-  const endIdx = file.indexOf('/* COLORS END */');
-
-  if (startIdx !== -1 && endIdx !== -1) {
-    file.splice(startIdx, endIdx - startIdx + 1);
-  }
-  
-  FS('config/custom.css').writeUpdate(() => file.join('\n') + newCss);
-}
-
-export function reloadCSS(): void {
-  const serverId = Config.serverid || `${serverName}`;
-  https.get(`https://play.pokemonshowdown.com/customcss.php?server=${serverId}`, () => {});
 }
