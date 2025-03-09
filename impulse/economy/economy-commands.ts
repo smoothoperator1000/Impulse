@@ -35,7 +35,7 @@ export const commands: Chat.ChatCommands = {
         const targetUser = toID(target) || toID(user.name);
         const balance = await getBalance(targetUser);
 
-        this.sendReplyBox(`<strong>${targetUser}</strong> has <strong>${balance} ${currencyName}</strong>.`);
+        this.sendReplyBox(`<strong>${targetUser}</strong> has <strong>${balance} ${currencyName()}</strong>.`);
     },
 
     transactionlog(target, room, user) {
@@ -72,7 +72,7 @@ export const commands: Chat.ChatCommands = {
             if (!targetUser || isNaN(Number(amount)) || !reason) return this.errorReply("Usage: /eco give [user], [amount], [reason]");
 
             await addMoney(toID(targetUser), Number(amount), reason);
-            this.sendReply(`${targetUser} has been given ${amount} ${currencyName}. Reason: ${reason}`);
+            this.sendReply(`${targetUser} has been given ${amount} ${currencyName()}. Reason: ${reason}`);
         },
 
         async take(target, room, user) {
@@ -82,9 +82,9 @@ export const commands: Chat.ChatCommands = {
 
             const success = await takeMoney(toID(targetUser), Number(amount), reason);
             if (success) {
-                this.sendReply(`${amount} ${currencyName} have been taken from ${targetUser}. Reason: ${reason}`);
+                this.sendReply(`${amount} ${currencyName()} have been taken from ${targetUser}. Reason: ${reason}`);
             } else {
-                this.errorReply(`${targetUser} does not have enough ${currencyName}.`);
+                this.errorReply(`${targetUser} does not have enough ${currencyName()}.`);
             }
         },
 
@@ -94,7 +94,7 @@ export const commands: Chat.ChatCommands = {
 
             const success = await transferMoney(toID(user.name), toID(targetUser), Number(amount), reason);
             if (success) {
-                this.sendReply(`Successfully transferred ${amount} {currencyName} to ${targetUser}. Reason: ${reason}`);
+                this.sendReply(`Successfully transferred ${amount} ${currencyName()} to ${targetUser}. Reason: ${reason}`);
             } else {
                 this.errorReply("Transfer failed. Check your balance.");
             }
