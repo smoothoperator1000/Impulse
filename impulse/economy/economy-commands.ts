@@ -9,22 +9,21 @@ import { FS } from '../../lib/fs';
 
 const LOG_FILE = './logs/transactions.log';
 
-export function hashColor(name: string): string {
-    name = name.toLowerCase().replace(/[^a-z0-9]/g, ''); // Standardize username
+export function hashColor(name?: string): string {
+    if (!name || typeof name !== "string") name = "Unknown"; // ✅ Prevents crashes
+    name = name.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-    // Hashing algorithm based on Showdown’s system
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
-        hash = (hash * 63 + name.charCodeAt(i)) % 360; // Generates a hue value (0-360)
+        hash = (hash * 63 + name.charCodeAt(i)) % 360;
     }
-
-    // Convert hash into HSL color (Showdown uses saturation: 50%, lightness: 45%)
     return `hsl(${hash}, 50%, 45%)`;
 }
 
-export function nameColor(name: string): string {
-    const color = hashColor(name);
-    return `<strong style="color: ${color};">${name}</strong>`;
+export function nameColor(name?: string, userid?: string): string {
+    const finalName = name ?? userid ?? "Unknown"; // ✅ Use `name`, fallback to `userid`, then "Unknown"
+    const color = hashColor(finalName);
+    return `<strong style="color: ${color};">${finalName}</strong>`;
 }
 
 global.currencyName = 'Pokèdollars';
@@ -114,14 +113,22 @@ export const commands: Chat.ChatCommands = {
             this.sendReply(`All users' balances have been reset to 0.`);
         },
 
-		 
-        async leaderboard(target, room, user) { //  Mark function as async
-            this.requireRoom(); // Ensure command is used in a room
+		 import { nameColor, getCurrency } from './utils'; // Import global functions
+
+        async leaderboard(target, room, user) {
+            this.requireRoom();
 
             let page = Number(target) || 1;
             if (page < 1) page = 1;
 
-            const usersData = await getAllBalances(); //  Use await to fetch balances
+            let usersData;
+            try {
+                usersData = await getAllBalances();
+            } catch (error) {
+                console.error("ECONNRESET Error in leaderboard:", error);
+                return this.errorReply("Error retrieving leaderboard data. Please try again.");
+            }
+
             const totalUsers = usersData.length;
             const perPage = 20;
             const totalPages = Math.max(1, Math.ceil(totalUsers / perPage));
@@ -132,14 +139,13 @@ export const commands: Chat.ChatCommands = {
 
             if (!displayedUsers.length) return this.errorReply("No users to display on this page.");
 
-            let tableRows = displayedUsers.map((user, index) => `<tr style="background: #2b2b3d; transition: background 0.3s;"><td style="padding: 8px; font-weight: bold; color: #FFD700; border-right: 2px solid #444;">${start + index + 1}</td><td style="padding: 8px; font-weight: bold; border-right: 2px solid #444;">${nameColor(user.name)}</td><td style="padding: 8px; color: #00c8ff;">${user.money.toLocaleString()} ${currencyName}</td></tr><tr><td colspan="3" style="border-top: 2px solid #444;"></td></tr>`).join("");
+            let tableRows = displayedUsers.map((user, index) => `<tr style="background: #2b2b3d;"><td style="padding: 8px; font-weight: bold; color: #FFD700;">${start + index + 1}</td><td style="padding: 8px;">${nameColor(user.name, user.userid)}</td><td style="padding: 8px; color: #00c8ff;">${user.money.toLocaleString()} ${getCurrency()}</td></tr>`).join("");
 
-            let leaderboardHtml = `<div style="background: #1e1e2e; padding: 10px; border-radius: 8px; color: #ffffff; font-family: Arial, sans-serif; text-align: center; max-width: 100%; overflow: auto;"><div style="font-size: 18px; font-weight: bold; color: #9bc8ff; margin-bottom: 6px;">❄️ Ice Pokémon Economy Leaderboard ❄️</div><table style="width: 100%; border-collapse: collapse; border-radius: 6px; max-width: 350px; margin: auto; border: 2px solid #444;"><thead><tr style="background: #3c3c50; color: #00c8ff;"><th style="padding: 6px; border-right: 2px solid #444;">Rank</th><th style="padding: 6px; border-right: 2px solid #444;">User</th><th style="padding: 6px;">Balance</th></tr><tr><td colspan="3" style="border-top: 2px solid #444;"></td></tr></thead><tbody>${tableRows}</tbody></table><div style="margin-top: 6px; font-size: 13px; color: #b0c7e4;">Page ${page} of ${totalPages}</div></div>`;
+            let leaderboardHtml = `<div style="background: #1e1e2e; padding: 10px; border-radius: 8px; color: #ffffff;"><div style="font-size: 18px; font-weight: bold; color: #9bc8ff;">❄️ Ice Pokémon Economy Leaderboard ❄️</div><table style="width: 100%;"><thead><tr style="background: #3c3c50; color: #00c8ff;"><th>Rank</th><th>User</th><th>Balance</th></tr></thead><tbody>${tableRows}</tbody></table><div>Page ${page} of ${totalPages}</div></div>`;
 
             const key = `leaderboard-${user.id}`;
-            const userNameWithColor = nameColor(user.name); // Display command user's name in their actual PS color
+            const userNameWithColor = nameColor(user.name, user.userid);
 
-            // Show in chatroom with the user's name (colored), otherwise send as a private message
             if (room) {
                 this.send(`|raw|<strong>${userNameWithColor}</strong>: /eco leaderboard<br>${leaderboardHtml}`);
             } else {
@@ -147,7 +153,7 @@ export const commands: Chat.ChatCommands = {
                 setTimeout(() => user.send(`|uhtmlchange|${key}|<strong>${userNameWithColor}</strong>: /eco leaderboard<br>${leaderboardHtml}`), 100);
             }
         },
-},
+	 },
 
     economy: 'eco', // Alias for /eco
 };
