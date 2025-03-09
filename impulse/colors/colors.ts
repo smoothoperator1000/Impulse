@@ -58,8 +58,8 @@ export function nameColor(name: string, bold: boolean = false, userGroup: boolea
   const id = toID(name);
 
   // Ensure Users.usergroups is valid before accessing it
-  const userGroupSymbol = (global.Users?.usergroups?.[id])
-    ? `<b><font color=#948A88>${global.Users.usergroups[id].charAt(0)}</font></b>`
+  const userGroupSymbol = (Users?.usergroups?.[id])
+    ? `<b><font color=#948A88>${Users.usergroups[id].charAt(0)}</font></b>`
     : '';
 
   return (userGroup ? userGroupSymbol : '') +
