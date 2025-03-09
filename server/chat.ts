@@ -2060,6 +2060,8 @@ export const Chat = new class {
 		// Load filters from Config
 		this.loadPlugin(Config, 'config');
 		this.loadPlugin(Tournaments, 'tournaments');
+		// Load chat commant from Impulse
+		this.loadPluginDirectory('dist/impulse');
 
 		this.loadPluginDirectory('dist/server/chat-plugins');
 		Chat.oldPlugins = {};
