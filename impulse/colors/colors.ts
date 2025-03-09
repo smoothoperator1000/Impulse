@@ -92,6 +92,6 @@ export function updateColor(): void {
 }
 
 export function reloadCSS(): void {
-  const serverId = Config.serverid || ${serverName};
+  const serverId = Config.serverid || `${serverName}`;
   https.get(`https://play.pokemonshowdown.com/customcss.php?server=${serverId}`, () => {});
 }
