@@ -10,8 +10,8 @@ import { FS } from '../../lib/fs';
 const LOG_FILE = './logs/transactions.log';
 
 export function hashColor(name?: string): string {
-    if (!name || typeof name !== "string") name = "Unknown"; // ✅ Prevents crashes
-    name = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!name || typeof name !== "string") name = "Unknown";
+    name = toID(name); //  Normalize username
 
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
