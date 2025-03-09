@@ -21,105 +21,107 @@ if (colorFile) {
   customColors = JSON.parse(colorFile);
 }
 
-// Custom MD5 hashing function (Restored)
-function MD5(text: string): string {
-  function rotateLeft(lValue: number, iShiftBits: number) {
-    return (lValue << iShiftBits) | (lValue >>> (32 - iShiftBits));
+// Custom MD5 hashing function (Refactored)
+function MD5(input: string): string {
+  function addUnsigned(a: number, b: number): number {
+    const lX8 = (a & 0x80000000);
+    const lY8 = (b & 0x80000000);
+    const lX4 = (a & 0x40000000);
+    const lY4 = (b & 0x40000000);
+    let result = (a & 0x3FFFFFFF) + (b & 0x3FFFFFFF);
+    
+    if (lX4 & lY4) return (result ^ 0x80000000 ^ lX8 ^ lY8);
+    if (lX4 | lY4) return (result & 0x40000000) ? (result ^ 0xC0000000 ^ lX8 ^ lY8) : (result ^ 0x40000000 ^ lX8 ^ lY8);
+    
+    return result ^ lX8 ^ lY8;
   }
 
-  function addUnsigned(lX: number, lY: number) {
-    let lX4, lY4, lX8, lY8, lResult;
-    lX8 = (lX & 0x80000000);
-    lY8 = (lY & 0x80000000);
-    lX4 = (lX & 0x40000000);
-    lY4 = (lY & 0x40000000);
-    lResult = (lX & 0x3FFFFFFF) + (lY & 0x3FFFFFFF);
-    if (lX4 & lY4) return (lResult ^ 0x80000000 ^ lX8 ^ lY8);
-    if (lX4 | lY4) {
-      return (lResult & 0x40000000) ? (lResult ^ 0xC0000000 ^ lX8 ^ lY8) : (lResult ^ 0x40000000 ^ lX8 ^ lY8);
-    } else {
-      return (lResult ^ lX8 ^ lY8);
+  function rotateLeft(value: number, shiftBits: number): number {
+    return (value << shiftBits) | (value >>> (32 - shiftBits));
+  }
+
+  function toHex(value: number): string {
+    let hexString = "";
+    for (let i = 0; i < 4; i++) {
+      let byte = (value >>> (i * 8)) & 255;
+      hexString += ("0" + byte.toString(16)).slice(-2);
     }
+    return hexString;
   }
 
-  function F(x: number, y: number, z: number) { return (x & y) | ((~x) & z); }
-  function G(x: number, y: number, z: number) { return (x & z) | (y & (~z)); }
-  function H(x: number, y: number, z: number) { return (x ^ y ^ z); }
-  function I(x: number, y: number, z: number) { return (y ^ (x | (~z))); }
+  function convertToWordArray(input: string): number[] {
+    const messageLength = input.length;
+    const numberOfWords = (((messageLength + 8) >>> 6) + 1) * 16;
+    const wordArray: number[] = new Array(numberOfWords - 1).fill(0);
 
-  function FF(a: number, b: number, c: number, d: number, x: number, s: number, ac: number) {
-    a = addUnsigned(a, addUnsigned(addUnsigned(F(b, c, d), x), ac));
-    return addUnsigned(rotateLeft(a, s), b);
-  }
-
-  function GG(a: number, b: number, c: number, d: number, x: number, s: number, ac: number) {
-    a = addUnsigned(a, addUnsigned(addUnsigned(G(b, c, d), x), ac));
-    return addUnsigned(rotateLeft(a, s), b);
-  }
-
-  function HH(a: number, b: number, c: number, d: number, x: number, s: number, ac: number) {
-    a = addUnsigned(a, addUnsigned(addUnsigned(H(b, c, d), x), ac));
-    return addUnsigned(rotateLeft(a, s), b);
-  }
-
-  function II(a: number, b: number, c: number, d: number, x: number, s: number, ac: number) {
-    a = addUnsigned(a, addUnsigned(addUnsigned(I(b, c, d), x), ac));
-    return addUnsigned(rotateLeft(a, s), b);
-  }
-
-  function convertToWordArray(str: string) {
-    let lWordCount;
-    const lMessageLength = str.length;
-    const lNumberOfWords_temp1 = lMessageLength + 8;
-    const lNumberOfWords_temp2 = (lNumberOfWords_temp1 - (lNumberOfWords_temp1 % 64)) / 64;
-    const lNumberOfWords = (lNumberOfWords_temp2 + 1) * 16;
-    const lWordArray = Array(lNumberOfWords - 1);
-    let lBytePosition = 0;
-    let lByteCount = 0;
-    while (lByteCount < lMessageLength) {
-      lWordCount = (lByteCount - (lByteCount % 4)) / 4;
-      lBytePosition = (lByteCount % 4) * 8;
-      lWordArray[lWordCount] = (lWordArray[lWordCount] | (str.charCodeAt(lByteCount) << lBytePosition));
-      lByteCount++;
+    for (let i = 0; i < messageLength; i++) {
+      wordArray[i >> 2] |= input.charCodeAt(i) << ((i % 4) * 8);
     }
-    lWordCount = (lByteCount - (lByteCount % 4)) / 4;
-    lBytePosition = (lByteCount % 4) * 8;
-    lWordArray[lWordCount] = lWordArray[lWordCount] | (0x80 << lBytePosition);
-    lWordArray[lNumberOfWords - 2] = lMessageLength << 3;
-    lWordArray[lNumberOfWords - 1] = lMessageLength >>> 29;
-    return lWordArray;
+
+    wordArray[messageLength >> 2] |= 0x80 << ((messageLength % 4) * 8);
+    wordArray[numberOfWords - 2] = messageLength << 3;
+    wordArray[numberOfWords - 1] = messageLength >>> 29;
+    
+    return wordArray;
   }
 
-  function wordToHex(lValue: number) {
-    let wordToHexValue = "", wordToHexValue_temp = "", lByte, lCount;
-    for (lCount = 0; lCount <= 3; lCount++) {
-      lByte = (lValue >>> (lCount * 8)) & 255;
-      wordToHexValue_temp = "0" + lByte.toString(16);
-      wordToHexValue = wordToHexValue + wordToHexValue_temp.substr(wordToHexValue_temp.length - 2, 2);
+  function transform(a: number, b: number, c: number, d: number, x: number[], s: number[], ac: number[]): void {
+    function F(x: number, y: number, z: number): number { return (x & y) | (~x & z); }
+    function G(x: number, y: number, z: number): number { return (x & z) | (y & ~z); }
+    function H(x: number, y: number, z: number): number { return x ^ y ^ z; }
+    function I(x: number, y: number, z: number): number { return y ^ (x | ~z); }
+
+    function FF(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
+      return addUnsigned(rotateLeft(addUnsigned(addUnsigned(a, F(b, c, d)), addUnsigned(x, ac)), s), b);
     }
-    return wordToHexValue;
+
+    function GG(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
+      return addUnsigned(rotateLeft(addUnsigned(addUnsigned(a, G(b, c, d)), addUnsigned(x, ac)), s), b);
+    }
+
+    function HH(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
+      return addUnsigned(rotateLeft(addUnsigned(addUnsigned(a, H(b, c, d)), addUnsigned(x, ac)), s), b);
+    }
+
+    function II(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
+      return addUnsigned(rotateLeft(addUnsigned(addUnsigned(a, I(b, c, d)), addUnsigned(x, ac)), s), b);
+    }
+
+    let a1 = a, b1 = b, c1 = c, d1 = d;
+    
+    // Main MD5 transformation loops (64 operations)
+    for (let i = 0; i < 64; i++) {
+      let temp: number;
+      if (i < 16) {
+        temp = FF(a1, b1, c1, d1, x[i], s[i % 4], ac[i]);
+      } else if (i < 32) {
+        temp = GG(a1, b1, c1, d1, x[(5 * i + 1) % 16], s[i % 4], ac[i]);
+      } else if (i < 48) {
+        temp = HH(a1, b1, c1, d1, x[(3 * i + 5) % 16], s[i % 4], ac[i]);
+      } else {
+        temp = II(a1, b1, c1, d1, x[(7 * i) % 16], s[i % 4], ac[i]);
+      }
+      d1 = c1;
+      c1 = b1;
+      b1 = temp;
+      a1 = d1;
+    }
+
+    a = addUnsigned(a, a1);
+    b = addUnsigned(b, b1);
+    c = addUnsigned(c, c1);
+    d = addUnsigned(d, d1);
   }
 
-  const x = convertToWordArray(text);
-  let a = 0x67452301;
-  let b = 0xEFCDAB89;
-  let c = 0x98BADCFE;
-  let d = 0x10325476;
+  const x = convertToWordArray(input);
+  let a = 0x67452301, b = 0xEFCDAB89, c = 0x98BADCFE, d = 0x10325476;
 
-  for (let k = 0; k < x.length; k += 16) {
-    const AA = a, BB = b, CC = c, DD = d;
-    a = FF(a, b, c, d, x[k + 0], 7, 0xD76AA478);
-    d = FF(d, a, b, c, x[k + 1], 12, 0xE8C7B756);
-    c = FF(c, d, a, b, x[k + 2], 17, 0x242070DB);
-    b = FF(b, c, d, a, x[k + 3], 22, 0xC1BDCEEE);
-    // ... (Continue for all 64 rounds)
-    a = addUnsigned(a, AA);
-    b = addUnsigned(b, BB);
-    c = addUnsigned(c, CC);
-    d = addUnsigned(d, DD);
-  }
+  transform(a, b, c, d, x, [7, 12, 17, 22], [
+    3614090360, 3905402710, 606105819, 3250441966, 4118548399, 1200080426, 2821735955, 4249261313,
+    1770035416, 2336552879, 4294925233, 2304563134, 1804603682, 4254626195, 2792965006, 1236535329,
+  ]);
 
-  return (wordToHex(a) + wordToHex(b) + wordToHex(c) + wordToHex(d)).toLowerCase();
+  return (toHex(a) + toHex(b) + toHex(c) + toHex(d)).toLowerCase();
 }
 
 
