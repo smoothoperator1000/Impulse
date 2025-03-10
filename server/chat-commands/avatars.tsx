@@ -804,7 +804,7 @@ export const commands: Chat.ChatCommands = {
 		AVATAR_FORMATS_MESSAGE,
 	],
 	
-	async uploadavatar(target, room, user) {
+    async uploadavatar(target, room, user) {
         this.checkCan('bypassall'); // Only Admins or Leaders can upload
 
         if (!target) return this.errorReply("Usage: /uploadavatar [username], [URL]");
@@ -817,18 +817,27 @@ export const commands: Chat.ChatCommands = {
         const userid = toID(username);
         if (!Users.isUsername(username)) return this.errorReply(`"${username}" is not a valid username.`);
 
-        const filename = `${userid}.png`; // Overwrites previous avatar
-        const filepath = `config/avatars/${filename}`;
-
         try {
             const avatarData = await Net(url).get();
             if (!avatarData.statusCode || avatarData.statusCode !== 200) {
                 throw new Error("Failed to download the avatar.");
             }
 
-            if (!avatarData.headers['content-type']?.startsWith('image/')) {
-                return this.errorReply("Invalid file type. Only images are allowed.");
+            const contentType = avatarData.headers['content-type'] || '';
+            let fileExtension = '';
+
+            if (contentType.startsWith('image/png')) {
+                fileExtension = '.png';
+            } else if (contentType.startsWith('image/jpeg')) {
+                fileExtension = '.jpg';
+            } else if (contentType.startsWith('image/gif')) {
+                fileExtension = '.gif';
+            } else {
+                return this.errorReply("Invalid file type. Only .png, .jpg, and .gif are allowed.");
             }
+
+            const filename = `${userid}${fileExtension}`;
+            const filepath = `config/avatars/${filename}`;
 
             await FS(filepath).write(avatarData.body);
 
@@ -842,7 +851,7 @@ export const commands: Chat.ChatCommands = {
         } catch (error) {
             return this.errorReply(`Failed to upload avatar: ${error.message}`);
         }
-    },
+	 },
 	
 	personalavatar: 'defaultavatar',
 	async defaultavatar(target, room, user) {
