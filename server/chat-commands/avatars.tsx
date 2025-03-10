@@ -795,6 +795,7 @@ export const commands: Chat.ChatCommands = {
 		return this.parse(`/help addavatar`);
 	},
 	addavatarhelp: [
+		'/uploadavatar [username], [URL] - Uploads an avatar from a URL and assigns it to the user.`,
 		`/personalavatar [username], [avatar] - Gives a user a default (personal) avatar.`,
 		`/groupavatar [username], [avatar] - Gives a user an allowed (group) avatar.`,
 		`/removeavatar [username], [avatar] - Removes access to an avatar from a user.`,
@@ -802,7 +803,47 @@ export const commands: Chat.ChatCommands = {
 		`/moveavatars [oldname], [newname] - Moves access to all custom avatars from oldname to newname.`,
 		AVATAR_FORMATS_MESSAGE,
 	],
+	
+	async uploadavatar(target, room, user) {
+        this.checkCan('bypassall'); // Only Admins or Leaders can upload
 
+        if (!target) return this.errorReply("Usage: /uploadavatar [username], [URL]");
+
+        const [username, url] = target.split(',').map(part => part.trim());
+        if (!username || !url) return this.errorReply("Usage: /uploadavatar [username], [URL]");
+
+        if (!/^https?:\/\//.test(url)) return this.errorReply("Invalid URL. The URL must start with http:// or https://");
+
+        const userid = toID(username);
+        if (!Users.isUsername(username)) return this.errorReply(`"${username}" is not a valid username.`);
+
+        const filename = `${userid}.png`; // Overwrites previous avatar
+        const filepath = `config/avatars/${filename}`;
+
+        try {
+            const avatarData = await Net(url).get();
+            if (!avatarData.statusCode || avatarData.statusCode !== 200) {
+                throw new Error("Failed to download the avatar.");
+            }
+
+            if (!avatarData.headers['content-type']?.startsWith('image/')) {
+                return this.errorReply("Invalid file type. Only images are allowed.");
+            }
+
+            await FS(filepath).write(avatarData.body);
+
+            // Assign avatar to user
+            if (!Avatars.addPersonal(userid, filename)) {
+                return this.errorReply(`User "${username}" already has this avatar.`);
+            }
+
+            this.globalModlog('UPLOAD AVATAR', userid, filename);
+            return this.sendReplyBox(`<strong>Successfully uploaded an avatar for ${username}!</strong><br />` + Avatars.img(filename));
+        } catch (error) {
+            return this.errorReply(`Failed to upload avatar: ${error.message}`);
+        }
+    },
+	
 	personalavatar: 'defaultavatar',
 	async defaultavatar(target, room, user) {
 		this.checkCan('bypassall');
